@@ -1,65 +1,74 @@
-#Importamos las librerías necesarias
+#Importamos las librerías requeridas
 import requests
-import bs4
-import re
+from bs4 import BeautifulSoup
+import pandas as pd
 
-#Solicitamos una página web con tiempo de espera de 2 segudos
-ej1 = requests.get("http://www.pythonscraping.com/pages/warandpeace.html",
-                   timeout=2)
+#Adquirimos la página web con tiempo máximo de carga de 3 segundos
+pagina = requests.get(
+    'https://www.msn.com/es-co/deportes/futbol/futbol-colombiano/clasificacion',
+    timeout=3)
 
-#Imprimimos la dirección de la página web
-print("\nLa página que se analizó es: \n", ej1.url, "\n")
+#Transformamos a BeautifulSoup para identificar diferentes tipos de html y acceder a la información
+soup = BeautifulSoup(pagina.content, 'html.parser')
+#print(pagina.text)
 
-#No imprimimos el contenido completo para facilidad de lectura del archivo
-#print("\nEl contenido completo de la página es: \n", ej1.text, "\n")
+#Identificamos el código de cada elemnto y lo traemos al código
+eq = soup.find_all('td', class_='teamname')
+#print(eq)
 
-#Construimos un elemento de bs4
-op1 = bs4.BeautifulSoup(ej1.text)
+#Creamos una lista vacía
+equipos = list()
 
-#Extraemos los nombres de los personajes
-nom1 = []  #Creamos la lista vacía
-op2 = op1.findAll(
-    "span", {"class": "green"}
-)  #Identificamos las palabras resaltadas en verde que corresponden a los nombres
-for name in op2:  #Establecemos que de cada palabra con esta condición, obtenemos el texto y lo agregamos a la lista -nom1-
-    print(name.get_text())
-    nom1.append(name.get_text())
+#Utilizaremos solo los primeros 8 equipos de la clasificación
+#Establecemos el inicio del conteo en 0
+count = 0
+#Establecemos que para cada i en eq
+for i in eq:
+    #Si el conteo es menor a 8, que cada item se agregue a la lista
+    if count < 8:
+        equipos.append(i.text)
+#De lo contrario, se detiene
+    else:
+        break
+#Y sumamos 1
+    count += 1
 
-print("\nLos nombres sin depurar son: \n", nom1, "\n")
+#Imprimimos los primeros 8 equipos
+print("\nLos equipos que clasificarán son:\n", equipos, "\n")
 
-#Depuramos los datos
-nom2 = []  #Creamos la lista vacía
-for nombre in nom1:  #Establecemos que para cada nombre en la lista -nom1-, no se repitan los nombres
-    a = re.compile("\w+")
-    b = a.findall(nombre)
-    nom2.append(b)
-print("\nLos nombres depurados son: \n", nom2, "\n")
+#Identificamos el código de cada elemnto y lo traemos al código
+pt = soup.find_all('td', class_='points')
+#print(pt)
 
-#Extraemos solo los dialogos
-op2 = op1.findAll(
-    "span", {"class": "red"}
-)  #Identificamos que las palabras resaltadas en rojo corresponden a los diálogos
-for texto in op2:  #Establecemos que para cada texto que corresponda a los anterores criterios, se imprime a continuación
-    print("\nLos diálogos del texto son: \n", texto.get_text(), "\n")
+#Creamos una lista vacía
+puntos = list()
 
-#Solicitamos una página web con tiempo de espera máximo de 2 segudos
-ej2 = requests.get("https://www.py4e.com/code3/", timeout=2)
-print("\nLa dirección que se analizó es: \n", ej2.url, "\n")
+#Utilizaremos solo los primeros 8 resultados de la clasificación
+#Establecemos el inicio del conteo en 0
+count = 0
+#Establecemos que para cada i en eq
+for i in pt:
+    #Si el conteo es menor a 8, que cada item se agregue a la lista
+    if count < 8:
+        puntos.append(i.text)
+#De lo contrario, se detiene
+    else:
+        break
+    count += 1
+#Y sumamos 1
 
-#No imprimimos el contenido completo para facilidad de lectura del archivo
-#print("\nEl contenido completo de la página es: \n",ej1.text,"\n")
+#Imprimimos los primeros 8 puntajes
+print("\nLos puntos con los que clasificarán los equipos son:\n", puntos, "\n")
 
-#Construimos un elemento de bs4
-op3 = bs4.BeautifulSoup(ej2.text)
+#Creamos un DataFrame en donde relacionaremos los equipos con los puntos
+df = pd.DataFrame({
+    'Nombre': equipos,
+    'Puntos': puntos
+},
+                  index=list(range(1, 9)))#Declaramos que se haga en una lista con el rago 1-9
 
-#Buscamos las etiqutas referentes a archivos de python
-op4 = op3.findAll("a", href=re.compile("\.py$"))
-print("Las etiquetas para archivos de Pyhton son: \n", op4, "\n")
+#Imprimimos el DataFrame
+print("\nLos equipos y los puntos emparejados son:\n\n",df,"\n")
 
-#Identificamos los nombres de los archivos
-arch = []  #Creamos la lista vacía
-for contem in op4:  #A la lista le agregamos el tecto identificado
-    arch.append(contem.get_text())
-print("Los archivos de Python contenidos en ", ej2.url, "son: \n", arch, "\n")
-
-#Profe, pude entender la ejecución de las funciones, sin embargo, no pude comprender los criterios de búsqueda para la página web que se debía utilizar, por lo tanto, utilicé los ejemplos plasmados en el taller. Muchas gracias
+#Guardamos la información en un archivo .csv
+df.to_csv('Clasificación.csv', index=False)
